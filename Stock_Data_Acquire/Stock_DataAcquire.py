@@ -41,7 +41,14 @@ class Stock_DataAcquire:
         Stock_name_Financial_Status_position=Stock_header_infor.index('Financial Status')
         Stock_name_ETF_position=Stock_header_infor.index('ETF')
         
-        #finish decode the 
+        #finish decode the csv compony name list, start aquire the realtime data
+        #loops on all the lines and get all the price, create a folder and save the price in that folder
+        for Stock_list_Single_line in Stock_list_filename_lines:
+            Stock_Single_line_infor=Stock_list_Single_line.split('|')
+            print Stock_Single_line_infor[Stock_name_Symbol_position]+'  Stock_Market_Category  '+Stock_Single_line_infor[Stock_name_Market_Category_position]
+            try:
+                json.dumps(getQuotes(Stock_Single_line_infor[Stock_name_Symbol_position]))
+         
         
     def Yahoo_finance_acquire(self):
         

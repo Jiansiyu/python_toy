@@ -5,6 +5,7 @@ from googlefinance import getQuotes
 #read the nasdaq componies name 
 Stock_list_filename='nasdaqlisted.txt'
 data_path='NasdaqListed'
+
 with open(Stock_list_filename) as Stock_list_io:
     Stock_list_lines=Stock_list_io.readlines()
 #get the nasdaq systerm infor
