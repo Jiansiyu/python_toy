@@ -2,14 +2,16 @@
 # Stock_DataAcquire.py 
 # used for searching the stock price and save in to csv file
 # add the real time stock scan method to get the realtime price in a day
-
 # issues for realtime stock price
 # when scan all the companies, the time delay would be a big issues.Maybe need to change to parellel 
+
+# to solve the time delay issues, would be better just build a interest list and only retrieve the informations in the interest list
 
 from pandas_datareader import data
 from googlefinance import getQuotes
 import urllib   # used for get the NASDAQ company name list from ftp server 
 import os.path  # used for check the existance of files 
+import datetime
 import json     # json decoder interface
 import os
 import errno
@@ -47,8 +49,9 @@ class Stock_DataAcquire(object):
         
     def Stock_Aquire(self):
         
+    #loading realtime data list
     def Google_finance_acquire(self):
-        Stock_list_filename='nasdaqlisted.txt'
+        Stock_list_filename=self.stock_listfilename
         Data_path='Daily_Stock_Infor'
         
         # create folder if not exist 
@@ -83,7 +86,6 @@ class Stock_DataAcquire(object):
             self.Nasdaq_ftp_nasdaqlisted='ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqlisted.txt'
             else:
                 self.Nasdaq_ftp_nasdaqlisted=nasdaqlisted_url
-        
         # get the file from nasdaq ftp server 
         try:
             urllib.urlretrieve(Nasdaq_ftp_nasdaqlisted, 'nasdaqlisted.txt')
@@ -99,6 +101,14 @@ class Stock_DataAcquire(object):
         except:
             print 'Read company list from ftp server error from  ' + Nasdaq_ftp_nasdaqtraded
         
-        
     def Print_infor(self):
-         
+    
+    #check whether the current time is trade time, used for retrieve the realtime data and save to files
+    def Check_NASDAQ_open(self):
+             current_time=datetime.datetime.now()
+             if current_time.isoweekday() in range(1,5) and current_time.hour in range(9, 20):
+                 return:
+                     True
+                 else:
+                     False
+    
