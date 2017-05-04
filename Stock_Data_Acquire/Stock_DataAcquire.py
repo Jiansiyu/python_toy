@@ -8,18 +8,42 @@
 
 from pandas_datareader import data
 from googlefinance import getQuotes
-import json  # json decoder interface
+import urllib   # used for get the NASDAQ company name list from ftp server 
+import os.path  # used for check the existance of files 
+import json     # json decoder interface
 import os
 import errno
 import csv
 import sys 
 
-class Stock_DataAcquire:
+class Stock_DataAcquire(object):
     
-    def __init__(self,data_source_engine):
-        self.data_source_engine = data_source_engine;
-        self.CompListName='nasdaqlisted.txt'
-        self.CompInFor=[];
+    def __init__(self,stock_listfilename=None,data_source_engine=None):
+        """
+        """
+       
+        # set the data source
+        if data_source_engine is None:
+            self.data_source_engine='google'
+            else:
+                self.data_source_engine=data_source_engine                
+       
+        
+        #set the filename list
+        if stock_listfilename is None:
+            #get the listed nasdaq company names from nasdaq ftp server
+            Get_Nasdaq_companylist()
+            self.stock_listfilename='nasdaqlisted.txt'
+            else:
+                # check the existance of the nasdaq filename list, if the file is not exist try to download from ftp server 
+                if os.path.isfile(stock_listfilename):
+                    self.stock_listfilename=stock_listfilename
+                    else:
+                        print 'The specified file is not exist, trying to down load from ftp server...'
+                        Get_Nasdaq_companylist()
+                        self.stock_listfilename='nasdaqlisted.txt'
+        # finish retrieve the company filename 
+        
         
     def Stock_Aquire(self):
         
@@ -51,7 +75,30 @@ class Stock_DataAcquire:
          
         
     def Yahoo_finance_acquire(self):
+    
+    
+    def Get_Nasdaq_companylist(self, Nasdaq_ftp_nasdaqlisted=None,Nasdaq_ftp_nasdaqtraded=None):
+        print 'Trying to retrieve the NASDAQ company name list from server' 
+        if Nasdaq_ftp_nasdaqlisted is None:
+            self.Nasdaq_ftp_nasdaqlisted='ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqlisted.txt'
+            else:
+                self.Nasdaq_ftp_nasdaqlisted=nasdaqlisted_url
         
-
+        # get the file from nasdaq ftp server 
+        try:
+            urllib.urlretrieve(Nasdaq_ftp_nasdaqlisted, 'nasdaqlisted.txt')
+        except:
+            print 'Read company list from ftp server error from  '+Nasdaq_ftp_nasdaqlisted
+        if Nasdaq_ftp_nasdaqtraded is None:
+            self.Nasdaq_ftp_nasdaqtraded='ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqtraded.txt'
+            else:
+                self.Nasdaq_ftp_nasdaqtraded=nasdaqlisted_url
+        # get the file from nasdaq ftp server 
+        try:
+            urllib.urlretrieve(Nasdaq_ftp_nasdaqtraded, 'nasdaqtraded.txt')
+        except:
+            print 'Read company list from ftp server error from  ' + Nasdaq_ftp_nasdaqtraded
+        
+        
     def Print_infor(self):
          
