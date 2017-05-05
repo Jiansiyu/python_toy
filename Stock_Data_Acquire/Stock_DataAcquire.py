@@ -23,42 +23,40 @@ class Stock_DataAcquire(object):
     def __init__(self,stock_listfilename=None,data_source_engine=None):
         """
         """
-       
+        print 'test'
         # set the data source
         if data_source_engine is None:
             self.data_source_engine='google'
-            else:
-                self.data_source_engine=data_source_engine                
-       
-        
+        else:
+            self.data_source_engine=data_source_engine
         #set the filename list
         if stock_listfilename is None:
             #get the listed nasdaq company names from nasdaq ftp server
-            Get_Nasdaq_companylist()
+            self.Get_Nasdaq_companylist()
             self.stock_listfilename='nasdaqlisted.txt'
+        else:
+            # check the existance of the nasdaq filename list, if the file is not exist try to download from ftp server 
+            if os.path.isfile(stock_listfilename):
+                self.stock_listfilename=stock_listfilename
             else:
-                # check the existance of the nasdaq filename list, if the file is not exist try to download from ftp server 
-                if os.path.isfile(stock_listfilename):
-                    self.stock_listfilename=stock_listfilename
-                    else:
-                        print 'The specified file is not exist, trying to down load from ftp server...'
-                        Get_Nasdaq_companylist()
-                        self.stock_listfilename='nasdaqlisted.txt'
+                print 'The specified file is not exist, trying to down load from ftp server...'
+                self.Get_Nasdaq_companylist()
+                self.stock_listfilename='nasdaqlisted.txt'
         # finish retrieve the company filename 
-        
-        
-    def Stock_Aquire(self):
-        
+            
     #loading realtime data list
-    def Google_finance_acquire(self):
-        Stock_list_filename=self.stock_listfilename
+    def Google_finance_acquire(self,Stock_Interest_list=None):
+        if Stock_Interest_list is None:
+            self.Stock_list_filename=self.stock_listfilename
+        else:
+            self.Stock_list_filename=Stock_Interest_list
         Data_path='Daily_Stock_Infor'
         
         # create folder if not exist 
         if not os.path.exists(Data_path):
             os.makedirs(Data_path)
         #decode the stock compony name, and use that name to get the real time price 
-        with open(Stock_list_filename) as Stock_list_io:
+        with open(self.Stock_list_filename) as Stock_list_io:
             Stock_list_filename_lines=Stock_list_io.readlines()
         # decoder the header, and get the data strcuture of the csv file 
         Stock_header_infor=Stock_list_filename_lines[0].split('|')
@@ -74,41 +72,71 @@ class Stock_DataAcquire(object):
             Stock_Single_line_infor=Stock_list_Single_line.split('|')
             print Stock_Single_line_infor[Stock_name_Symbol_position]+'  Stock_Market_Category  '+Stock_Single_line_infor[Stock_name_Market_Category_position]
             try:
-                json.dumps(getQuotes(Stock_Single_line_infor[Stock_name_Symbol_position]))
-         
+                self.Single_Company_temp=json.dumps(getQuotes(Stock_Single_line_infor[Stock_name_Symbol_position]))
+                #print self.Single_Company_temp
+                self.json_data=json.loads(self.Single_Company_temp)
+                for self.Single_company_inpackage in self.json_data:
+                    for self.keys in self.Single_company_inpackage.keys():
+                        print self.keys
+                
+                    print '++++++++++++++++++++++++++++++++++++++++'
+            except:
+                print 'retrieve error'
+#    def Yahoo_finance_acquire(self):
+
+    def Get_Nasdaq_companylist(self,Nasdaq_ftp_nasdaqlisted=None,Nasdaq_ftp_nasdaqtraded=None):
         
-    def Yahoo_finance_acquire(self):
-    
-    
-    def Get_Nasdaq_companylist(self, Nasdaq_ftp_nasdaqlisted=None,Nasdaq_ftp_nasdaqtraded=None):
-        print 'Trying to retrieve the NASDAQ company name list from server' 
+        print 'Trying to retrieve the NASDAQ company name list from server'       
         if Nasdaq_ftp_nasdaqlisted is None:
             self.Nasdaq_ftp_nasdaqlisted='ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqlisted.txt'
-            else:
-                self.Nasdaq_ftp_nasdaqlisted=nasdaqlisted_url
+        else:
+            self.Nasdaq_ftp_nasdaqlisted=nasdaqlisted_url
+        
         # get the file from nasdaq ftp server 
-        try:
-            urllib.urlretrieve(Nasdaq_ftp_nasdaqlisted, 'nasdaqlisted.txt')
-        except:
-            print 'Read company list from ftp server error from  '+Nasdaq_ftp_nasdaqlisted
         if Nasdaq_ftp_nasdaqtraded is None:
             self.Nasdaq_ftp_nasdaqtraded='ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqtraded.txt'
-            else:
-                self.Nasdaq_ftp_nasdaqtraded=nasdaqlisted_url
-        # get the file from nasdaq ftp server 
+        else:
+            self.Nasdaq_ftp_nasdaqtraded=nasdaqlisted_url
+         # get the file from nasdaq ftp server 
         try:
-            urllib.urlretrieve(Nasdaq_ftp_nasdaqtraded, 'nasdaqtraded.txt')
+            urllib.urlretrieve(self.Nasdaq_ftp_nasdaqlisted, 'nasdaqlisted.txt')
         except:
-            print 'Read company list from ftp server error from  ' + Nasdaq_ftp_nasdaqtraded
-        
-    def Print_infor(self):
+            print 'Read company list from ftp server error from  '+ self.Nasdaq_ftp_nasdaqlisted
+      
+        try:
+            urllib.urlretrieve(self.Nasdaq_ftp_nasdaqlisted, 'nasdaqlisted.txt')
+        except:
+            print 'Read company list from ftp server error from  ' + self.Nasdaq_ftp_nasdaqtraded
+         
+    #def Print_infor(self):
     
     #check whether the current time is trade time, used for retrieve the realtime data and save to files
     def Check_NASDAQ_open(self):
-             current_time=datetime.datetime.now()
-             if current_time.isoweekday() in range(1,5) and current_time.hour in range(9, 20):
-                 return:
-                     True
-                 else:
-                     False
+        self.current_time=datetime.datetime.now()
+        if self.current_time.isoweekday() in range(1,5) and current_time.hour in range(9,18):
+            return True
+        else:
+            return False
+    
+    # save the json data into folders/files 
+    # need to set the save path, and the save name, and the save mode(recreate or add)
+    # it will auto check the existance of the files, 
+    # by default, the save mode would be add instead of recreate
+    def _Save_json(self,json_data,save_path,save_mode=None):
+        if json_data is not None:
+            self.save_JsonData=json_data
+        else:
+            print 'Save Data is empty'
+        if save_path is not None:
+            self.save_Save_path=save_path
+        else:
+            print 'Save Path is empty'
+        #check the existance of the folder, if not trying to create the folder used to save the file
+        self.save_basename=os.path.dirname(save_path)
+        if not os.path.exists(self.save_basename):
+            os.makedirs(self.save_basename)
+        
+        #if save_mode is None or save_mode is 'w' or save_mode is 'recreate' or save_mode is 'new':
+        #    self.save_targetfile= open
+     
     
