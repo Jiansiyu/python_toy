@@ -9,6 +9,7 @@
 
 from pandas_datareader import data
 from googlefinance import getQuotes
+from csv import DictWriter
 import urllib   # used for get the NASDAQ company name list from ftp server 
 import os.path  # used for check the existance of files 
 import datetime
@@ -17,6 +18,8 @@ import os
 import errno
 import csv
 import sys 
+
+import timeit
 
 class Stock_DataAcquire(object):
     
@@ -68,8 +71,11 @@ class Stock_DataAcquire(object):
         
         #finish decode the csv compony name list, start aquire the realtime data
         #loops on all the lines and get all the price, create a folder and save the price in that folder
+        self.iterator_couter=0
         for Stock_list_Single_line in Stock_list_filename_lines:
             Stock_Single_line_infor=Stock_list_Single_line.split('|')
+            print self.iterator_couter
+            self.iterator_couter=self.iterator_couter+1
             print Stock_Single_line_infor[Stock_name_Symbol_position]+'  Stock_Market_Category  '+Stock_Single_line_infor[Stock_name_Market_Category_position]
             try:
                 self.Single_Company_temp=json.dumps(getQuotes(Stock_Single_line_infor[Stock_name_Symbol_position]))
@@ -77,8 +83,10 @@ class Stock_DataAcquire(object):
                 self.json_data=json.loads(self.Single_Company_temp)
                 for self.Single_company_inpackage in self.json_data:
                     for self.keys in self.Single_company_inpackage.keys():
-                        print self.keys
-                
+                        print self.keys 
+                    for self.keys,self.values in  self.Single_company_inpackage.iteritems():
+                        print self.keys +'                     '+ self.values 
+                    
                     print '++++++++++++++++++++++++++++++++++++++++'
             except:
                 print 'retrieve error'
@@ -122,7 +130,7 @@ class Stock_DataAcquire(object):
     # need to set the save path, and the save name, and the save mode(recreate or add)
     # it will auto check the existance of the files, 
     # by default, the save mode would be add instead of recreate
-    def _Save_json(self,json_data,save_path,save_mode=None):
+    def _Save_json(self,json_data,save_path,stock_companyname,save_mode=None):
         if json_data is not None:
             self.save_JsonData=json_data
         else:
@@ -131,12 +139,25 @@ class Stock_DataAcquire(object):
             self.save_Save_path=save_path
         else:
             print 'Save Path is empty'
+        
         #check the existance of the folder, if not trying to create the folder used to save the file
         self.save_basename=os.path.dirname(save_path)
         if not os.path.exists(self.save_basename):
             os.makedirs(self.save_basename)
         
-        #if save_mode is None or save_mode is 'w' or save_mode is 'recreate' or save_mode is 'new':
-        #    self.save_targetfile= open
-     
-    
+        if stock_companyname is not None:
+            self.save_stock_companyname=stock_companyname
+        else:
+            self.save_stock_companyname=self.save_JsonData['StockSymbol']
+        
+        if save_mode is None or save_mode is 'w' or save_mode is 'recreate' or save_mode is 'new':
+            self.save_targetfile= open(self.save_stock_companyname+'.csv','w') # create a new file 
+            # write the headers 
+            self.savewriter=DictWriter(self.save_targetfile,self.save_JsonData.keys())
+            self.savewriter.writeheader()
+            self.savewriter.writerows(self.save_JsonData)
+            self.save_targetfile.close()
+            
+        else:
+            # read the headers and write cresponding data into the folder 
+            print 'write to existance files'
