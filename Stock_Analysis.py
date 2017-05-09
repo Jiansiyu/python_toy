@@ -34,4 +34,5 @@
 from Stock_DataAcquire import Stock_DataAcquire
 #from Stock_DataAcquire import Stock_DataAcquire
 A=Stock_DataAcquire()
-A.Google_finance_acquire()
+#A.Google_finance_acquire()
+A.Pandas_Data_acquire()
