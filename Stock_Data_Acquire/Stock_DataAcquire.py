@@ -13,19 +13,22 @@ import urllib   # used for get the NASDAQ company name list from ftp server
 import os.path  # used for check the existance of files
 import datetime
 import json     # json decoder interface
-import os
-import errno
-import csv
-import sys
+#import os
 
-import timeit
+import time
+
 
 class Stock_DataAcquire(object):
 
     def __init__(self,stock_listfilename=None,data_source_engine=None):
         """
         """
-        print 'test'
+        
+        
+        self.StockComponyListPath='Data/StockList/'
+        if not os.path.exists(self.StockComponyListPath):
+            os.makedirs(self.StockComponyListPath)
+        
         # set the data source
         if data_source_engine is None:
             self.data_source_engine='google'
@@ -34,39 +37,37 @@ class Stock_DataAcquire(object):
         #set the filename list
         if stock_listfilename is None:
             #get the listed nasdaq company names from nasdaq ftp server
-            self.Get_Nasdaq_companylist()
-            self.stock_listfilename='nasdaqlisted.txt'
+            self.stock_listfilename='InterestList.txt'
         else:
             # check the existance of the nasdaq filename list, if the file is not exist try to download from ftp server
             if os.path.isfile(stock_listfilename):
                 self.stock_listfilename=stock_listfilename
             else:
                 print 'The specified file is not exist, trying to down load from ftp server...'
-                self.Get_Nasdaq_companylist()
-                self.stock_listfilename='nasdaqlisted.txt'
+                self.stock_listfilename='InterestList.txt'
+        self.Get_Nasdaq_companylist()
         # finish retrieve the company filename
-
     #loading realtime data list
     def Google_finance_acquire(self,Stock_Interest_list=None):
         if Stock_Interest_list is None:
-            self.Stock_list_filename=self.stock_listfilename
+            Stock_list_filename=self.stock_listfilename
         else:
-            self.Stock_list_filename=Stock_Interest_list
+            Stock_list_filename=Stock_Interest_list
         Data_path='Daily_Stock_Infor'
 
         # create folder if not exist
         if not os.path.exists(Data_path):
             os.makedirs(Data_path)
         #decode the stock compony name, and use that name to get the real time price
-        with open(self.Stock_list_filename) as Stock_list_io:
+        with open(Stock_list_filename) as Stock_list_io:
             Stock_list_filename_lines=Stock_list_io.readlines()
         # decoder the header, and get the data strcuture of the csv file
         Stock_header_infor=Stock_list_filename_lines[0].split('|')
         Stock_name_Symbol_position=Stock_header_infor.index('Symbol')
-        Stock_name_Security_name_position=Stock_header_infor.index('Security Name')
+        #Stock_name_Security_name_position=Stock_header_infor.index('Security Name')
         Stock_name_Market_Category_position=Stock_header_infor.index('Market Category')
-        Stock_name_Financial_Status_position=Stock_header_infor.index('Financial Status')
-        Stock_name_ETF_position=Stock_header_infor.index('ETF')
+        #Stock_name_Financial_Status_position=Stock_header_infor.index('Financial Status')
+        #Stock_name_ETF_position=Stock_header_infor.index('ETF')
 
         #finish decode the csv compony name list, start aquire the realtime data
         #loops on all the lines and get all the price, create a folder and save the price in that folder
@@ -89,15 +90,13 @@ class Stock_DataAcquire(object):
                     print '++++++++++++++++++++++++++++++++++++++++'
             except:
                 print 'retrieve error'
-                
-    #def Yahoo_finance_acquire(self):
 
     # pandas data acquire interface, only used for get the daily informations
     def Pandas_Data_acquire(self,Stock_Interest_list=None,Data_source=None,StartTime=None,EndTime=None,data_path=None):
 
         # loading the insterest list
         if Stock_Interest_list is None:
-            Pandas_Stock_list_filename=self.stock_listfilename
+            Pandas_Stock_list_filename=self.StockComponyListPath+self.stock_listfilename
         else:
             Pandas_Stock_list_filename=Stock_Interest_list
 
@@ -105,7 +104,7 @@ class Stock_DataAcquire(object):
         if Data_source is not None:
             Pandas_Data_Source=Data_Source
         else:
-            Pandas_Data_Source='yahoo'
+            Pandas_Data_Source='google'
         
         # loading the stat time 
         if StartTime is not None:
@@ -124,55 +123,80 @@ class Stock_DataAcquire(object):
         with open(Pandas_Stock_list_filename) as Stock_list_io:
             Stock_list_lines=Stock_list_io.readlines()
             #get the nasdaq systerm infor
-            Stock_header_infor=Stock_list_lines[0].split('|')
+            
+            Stock_header_infor=Stock_list_lines[0].strip().split('|')
             Symbol_position =  Stock_header_infor.index('Symbol')
             Security_name_position=Stock_header_infor.index('Security Name')
-            Market_Category_position=Stock_header_infor.index('Market Category')
-            Financial_Status_position=Stock_header_infor.index('Financial Status')
-            ETF_position=Stock_header_infor.index('ETF')
+            
             #print Symbol_position
             #get the individual nasdaq conpany name
+            Stock_Counter=0
             for Single_line in Stock_list_lines:
                 Stock_infor=Single_line.split('|')
-                print Stock_infor[Symbol_position]+' Security name=>'+Stock_infor[Security_name_position]
+                print 'No. '+str(Stock_Counter)+'  Symbol: ' +Stock_infor[Symbol_position]#+' Security name=>'+Stock_infor[Security_name_position]
+                Stock_Counter=Stock_Counter+1
+                print 'Sleep for 3 second to avoid error'
+                time.sleep(1)
                 try:
-                    stock_data=data.DataReader(Stock_infor[Symbol_position], 'google','1980-01-01')
+                    stock_data=data.DataReader(Stock_infor[Symbol_position], Pandas_Data_Source,'1980-01-01')
                     stock_data.to_csv(Pandas_Data_path+'/'+Stock_infor[Symbol_position]+'.csv')
                 except:
                     with open('errorlog.log','a') as error_log:
-                        error_log.writelines(Pandas_Stock_list_filename+'   Error in' +Stock_infor[Symbol_position]+' Security name=>'+Stock_infor[Security_name_position])
+                        error_log.write(Pandas_Stock_list_filename+'   Error in' +Stock_infor[Symbol_position]+'"\n')#+' Security name=> "'+Stock_infor[Security_name_position]+'"\n')
                         error_log.close()
                         print '[ERROR] '+Stock_infor[Symbol_position]+' Security name=>'+Stock_infor[Security_name_position]
                     
     # get finance data from google finance
-    def Get_Nasdaq_companylist(self,Nasdaq_ftp_nasdaqlisted=None,Nasdaq_ftp_nasdaqtraded=None):
+    def Get_Nasdaq_companylist(self,Nasdaq_ftp_nasdaqlisted=None,Nasdaq_ftp_nasdaqtraded=None,Nasdaq_ftp_nasdaqotherlist=None):
 
         print 'Trying to retrieve the NASDAQ company name list from server'
-        if Nasdaq_ftp_nasdaqlisted is None:
-            self.Nasdaq_ftp_nasdaqlisted='ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqlisted.txt'
-        else:
-            self.Nasdaq_ftp_nasdaqlisted=nasdaqlisted_url
-
-        # get the file from nasdaq ftp server
-        if Nasdaq_ftp_nasdaqtraded is None:
-            self.Nasdaq_ftp_nasdaqtraded='ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqtraded.txt'
-        else:
-            self.Nasdaq_ftp_nasdaqtraded=nasdaqlisted_url
-         # get the file from nasdaq ftp server
-        try:
-            urllib.urlretrieve(self.Nasdaq_ftp_nasdaqlisted, 'nasdaqlisted.txt')
-        except:
-            print 'Read company list from ftp server error from  '+ self.Nasdaq_ftp_nasdaqlisted
-
-        try:
-            urllib.urlretrieve(self.Nasdaq_ftp_nasdaqlisted, 'nasdaqlisted.txt')
-        except:
-            print 'Read company list from ftp server error from  ' + self.Nasdaq_ftp_nasdaqtraded
-
+        
+        Nasdaq_compony_list=["nasdaqlisted.txt","otherlisted.txt"] #"nasdaqtraded.txt",
+        Nasdaq_ftp_baseaddr='ftp://ftp.nasdaqtrader.com/SymbolDirectory/'
+        
+        for componylist in Nasdaq_compony_list:
+            try:
+                print 'Get '+componylist + ' Save as ' + self.StockComponyListPath+componylist
+                urllib.urlretrieve(Nasdaq_ftp_baseaddr+componylist, self.StockComponyListPath+componylist)
+            except Exception,e:
+                print e
+                print '[ERROR] => Reading "'+Nasdaq_ftp_baseaddr+componylist+'"' 
+        #combine the data and generate the insterest list
+        InterestList= open(self.StockComponyListPath+self.stock_listfilename,'w+') # create a new file
+        InterestList.write('Symbol|Security Name\n')
+        InterestList.close()
+        for componylist in Nasdaq_compony_list:
+            try:
+                with open(self.StockComponyListPath+componylist) as Stock_list_io:
+                    
+                    print 'Combine file "'+componylist+'"'
+                    Stock_list_lines=Stock_list_io.readlines()
+                    Stock_header_infor=Stock_list_lines[0].split('|')
+                    #Stock_name_Symbol_position=
+                    #print Stock_header_infor.index('Symbol')
+                    if 'Symbol' in Stock_header_infor:
+                        Symbol_position = Stock_header_infor.index('Symbol')
+                    elif 'ACT Symbol' in Stock_header_infor:
+                        Symbol_position = Stock_header_infor.index('ACT Symbol')
+                    else:
+                        continue
+                    Stock_name_Security_name_position=Stock_header_infor.index('Security Name')
+                    print 'Symbol_position: '+str(Symbol_position)+'  Stock_name_Security_name_position: '+str(Stock_name_Security_name_position)
+                    
+                    for Single_line in Stock_list_lines[1:]:
+                        Stock_infor=Single_line.split('|')
+                        print Stock_infor[Symbol_position]+' Security name=>'+Stock_infor[Stock_name_Security_name_position]
+                        with open(self.StockComponyListPath+self.stock_listfilename,'a') as interest_list_io:
+                            interest_list_io.writelines(Stock_infor[Symbol_position]+'|'+Stock_infor[Stock_name_Security_name_position]+'\n')
+                            interest_list_io.close()
+                
+            except Exception, e:
+                print e
+#             
     #check whether the current time is trade time, used for retrieve the realtime data and save to files
-    def Check_NASDAQ_open(self):
+    def _Check_NASDAQ_open(self):
         self.current_time=datetime.datetime.now()
-        if self.current_time.isoweekday() in range(1,5) and current_time.hour in range(9,18):
+        if self.current_time.isoweekday() in range(1,5) and self.current_time.hour in range(9,18):
             return True
         else:
             return False

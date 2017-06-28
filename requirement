@@ -1,0 +1,2 @@
+sudo pip install --upgrade html5lib
+sudo pip install --upgrade beautifulsoup4

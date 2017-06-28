@@ -32,7 +32,16 @@
 #              
 
 from Stock_DataAcquire import Stock_DataAcquire
-#from Stock_DataAcquire import Stock_DataAcquire
+from Zack_Rank_Aquire import Zack_Spyder
+
+from Stock_DataAcquire import Stock_DataAcquire
 A=Stock_DataAcquire()
 #A.Google_finance_acquire()
 A.Pandas_Data_acquire()
+
+# Zack_Spyder test
+
+Zack_Spyder_test=Zack_Spyder();
+#Zack_Spyder_test.Zack_Rank_aquire('AAPL')
+Zack_Spyder_test.Zack_csv_addrank('Prediction.csv')
+#Zack_Spyder_test.Zack_Rank_stock('CMTL')
