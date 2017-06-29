@@ -1,11 +1,5 @@
 import urllib2
-import json
 from bs4 import BeautifulSoup  # used for decode the html data
-from bzrlib.urlutils import join
-from IPython.core.page import page
-from docutils.nodes import row
-from boto.mturk import price
-from boto.mturk.price import Price
 
 
 class Nasdaq_realtimeData(object):
@@ -99,8 +93,7 @@ class Nasdaq_realtimeData(object):
     
     def GetRealTimeVolumePrice(self,stock_symbol):
         sectionID = 'symbol'
-        timescal = 0
-        fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol+'/'+'time-sales?time=0'
+        fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol+'/'+'time-sales?time=1'
         print fullurl
         try:
             urllib2.socket.setdefaulttimeout(20)
@@ -108,6 +101,7 @@ class Nasdaq_realtimeData(object):
             urlresponse = urllib2.urlopen(urlrequest)
             urlpage = urlresponse.read()
             pagesoup = BeautifulSoup(urlpage,"lxml")
+            self.__GetNumofPageRealTime(pagesoup_in=pagesoup)
             #print pagesoup
             tablepage= pagesoup.find_all("div", {"class", "genTable"})[0].find("table")#find('table',id="AfterHoursPagingContents_Table")#,{"id","AfterHoursPagingContents_Table"})
             #print tablepage
@@ -116,12 +110,11 @@ class Nasdaq_realtimeData(object):
                 time   = trs.find_all()[0].text
                 price  = trs.find_all()[1].text
                 volume = trs.find_all()[2].text
-                
+                print time +' '+price+ ' '+volume
         except:
             print 'error'
     def GetRealTimePreMaket(self,stock_symbol):
         sectionID = 'symbol'
-        timescal = 0
         fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol+'/'+'premarket'
         print fullurl
         try:
@@ -130,7 +123,7 @@ class Nasdaq_realtimeData(object):
             urlresponse = urllib2.urlopen(urlrequest)
             urlpage = urlresponse.read()
             pagesoup = BeautifulSoup(urlpage,"lxml")
-            #print pagesoup
+            #self.__GeNumofPagePreMaket(pagesoup_in=pagesoup)
             tablepage= pagesoup.find_all("div", {"class", "genTable"})[1].find("table")#find('table',id="AfterHoursPagingContents_Table")#,{"id","AfterHoursPagingContents_Table"})
             
             #print tablepage
@@ -151,10 +144,9 @@ class Nasdaq_realtimeData(object):
                 print time +' '+price+' '+volume
                 #print trs.find_all()[1].text.split()[1]
         except:
-            print 'error'
+            print 'error in reading the premarket page'
     def GetRealTimeAfterhours(self,stock_symbol):
         sectionID = 'symbol'
-        timescal = 0
         fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol+'/'+'after-hours'
         print fullurl
         try:
@@ -163,6 +155,8 @@ class Nasdaq_realtimeData(object):
             urlresponse = urllib2.urlopen(urlrequest)
             urlpage = urlresponse.read()
             pagesoup = BeautifulSoup(urlpage,"lxml")
+            print self.__GetNumofPageAfterhours(stock_symbol_in=stock_symbol)
+
             #print pagesoup
             tablepage= pagesoup.find_all("div", {"class", "genTable"})[1].find("table")#find('table',id="AfterHoursPagingContents_Table")#,{"id","AfterHoursPagingContents_Table"})
             
@@ -187,8 +181,87 @@ class Nasdaq_realtimeData(object):
             print 'error'    
     def Test_Functions(self):
         print "test function"
-
+        
+    def __GetNumofPageAfterhours(self,stock_symbol_in=None,pagesoup_in=None):
+        if stock_symbol_in is None and pagesoup_in is None:
+            print 'Function Error'
+            exit(-1)
+        if pagesoup_in is not None:
+            tablepage= pagesoup_in.find_all("div", {"id": "pagerContainer"})[0].find_all('li')#find('table',id="AfterHoursPagingContents_Table")#,{"id","AfterHoursPagingContents_Table"})
+            numberofpage=len(tablepage)-4
+            if  numberofpage> 0:
+                return int(tablepage[-3].get_text())
+                #return  int(numberofpage)
+            else:
+                return int(1)
+        if pagesoup_in is None and stock_symbol_in is not None:
+            sectionID = 'symbol'
+            fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol_in+'/'+'after-hours'
+            print fullurl
+            try:
+                urllib2.socket.setdefaulttimeout(20)
+                urlrequest = urllib2.Request(fullurl)
+                urlresponse = urllib2.urlopen(urlrequest)
+                urlpage = urlresponse.read()
+                pagesoup = BeautifulSoup(urlpage,"lxml")
+                return int(self.__GetNumofPageAfterhours(pagesoup_in=pagesoup))
+            except:
+                print 'error get page number'
+    
+    def __GeNumofPagePreMaket(self,stock_symbol_in=None,pagesoup_in=None):
+        if stock_symbol_in is None and pagesoup_in is None:
+            print 'Function Error'
+            exit(-1)
+        if pagesoup_in is not None:
+            tablepage= pagesoup_in.find_all("div", {"id": "pagerContainer"})[0].find_all('li')#find('table',id="AfterHoursPagingContents_Table")#,{"id","AfterHoursPagingContents_Table"})
+            numberofpage=len(tablepage)-4
+            if  numberofpage> 0:
+                return int(tablepage[-3].get_text())
+                #return  int(numberofpage)
+            else:
+                return int(1)
+        if pagesoup_in is None and stock_symbol_in is not None:
+            sectionID = 'symbol'
+            fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol_in+'/'+'premarket'
+            print fullurl
+            try:
+                urllib2.socket.setdefaulttimeout(20)
+                urlrequest = urllib2.Request(fullurl)
+                urlresponse = urllib2.urlopen(urlrequest)
+                urlpage = urlresponse.read()
+                pagesoup = BeautifulSoup(urlpage,"lxml")
+                return int(self.__GetNumofPageAfterhours(pagesoup_in=pagesoup))
+            except:
+                print 'error get page number'
+    def __GetNumofPageRealTime(self,stock_symbol_in=None,pagesoup_in=None):
+        if stock_symbol_in is None and pagesoup_in is None:
+            print 'Function Error'
+            exit(-1)
+        if pagesoup_in is not None:  
+            tablepage= pagesoup_in.find_all("ul", {"class": "pager"})[0].find_all('li')
+            numberofpage=len(tablepage)-4
+            if  numberofpage> 0:
+                #print tablepage[-3].get_text()
+                return  int(tablepage[-3].get_text())
+            else:
+                return int(1)
+        if pagesoup_in is None and stock_symbol_in is not None:
+            sectionID = 'symbol'
+            fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol_in+'/'+'time-sales?time=1'
+            print fullurl
+            try:
+                urllib2.socket.setdefaulttimeout(20)
+                urlrequest = urllib2.Request(fullurl)
+                urlresponse = urllib2.urlopen(urlrequest)
+                urlpage = urlresponse.read()
+                pagesoup = BeautifulSoup(urlpage,"lxml")
+                return int(self.__GetNumofPageAfterhours(pagesoup_in=pagesoup))
+            except:
+                print 'error get page number'   
+                
 if __name__ == '__main__':
     print 'run as main functions'
     a = Nasdaq_realtimeData() 
-    a.GetRealTimeAfterhours('AAPL')
+    a.GetRealTimeAfterhours(stock_symbol='AAPL')
+    a.GetRealTimeVolumePrice(stock_symbol='AAPL')
+    a.GetRealTimePreMaket('AAPL')
