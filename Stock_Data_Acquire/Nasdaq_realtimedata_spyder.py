@@ -1,5 +1,6 @@
 import urllib2
 from bs4 import BeautifulSoup  # used for decode the html data
+from boto.dynamodb2.types import NUMBER
 
 
 class Nasdaq_realtimeData(object):
@@ -113,6 +114,7 @@ class Nasdaq_realtimeData(object):
                 print time +' '+price+ ' '+volume
         except:
             print 'error'
+    
     def GetRealTimePreMaket(self,stock_symbol):
         sectionID = 'symbol'
         fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol+'/'+'premarket'
@@ -147,7 +149,15 @@ class Nasdaq_realtimeData(object):
             print 'error in reading the premarket page'
     def GetRealTimeAfterhours(self,stock_symbol):
         sectionID = 'symbol'
-        fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol+'/'+'after-hours'
+        NumofPage=self.__GetNumofPageAfterhours(stock_symbol_in=stock_symbol)
+        for pageid in range(1,NumofPage+1):
+            self.GetRealTimeAfterhours_singlepage(stock_symbol=stock_symbol, page_id=pageid)
+    def GetRealTimeAfterhours_singlepage(self,stock_symbol,page_id=None):
+        if page_id is None:
+            page_id=1
+        sectionID = 'symbol'
+        #fullurl = 'http://www.nasdaq.com/symbol/aapl/after-hours?page=2'
+        fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol.lower()+'/'+'after-hours'+'?page='+str(page_id)
         print fullurl
         try:
             urllib2.socket.setdefaulttimeout(20)
@@ -178,9 +188,7 @@ class Nasdaq_realtimeData(object):
                 print time +' '+price+' '+volume
                 #print trs.find_all()[1].text.split()[1]
         except:
-            print 'error'    
-    def Test_Functions(self):
-        print "test function"
+            print 'error'
         
     def __GetNumofPageAfterhours(self,stock_symbol_in=None,pagesoup_in=None):
         if stock_symbol_in is None and pagesoup_in is None:
@@ -196,7 +204,7 @@ class Nasdaq_realtimeData(object):
                 return int(1)
         if pagesoup_in is None and stock_symbol_in is not None:
             sectionID = 'symbol'
-            fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol_in+'/'+'after-hours'
+            fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol_in.lower()+'/'+'after-hours'
             print fullurl
             try:
                 urllib2.socket.setdefaulttimeout(20)
@@ -222,7 +230,7 @@ class Nasdaq_realtimeData(object):
                 return int(1)
         if pagesoup_in is None and stock_symbol_in is not None:
             sectionID = 'symbol'
-            fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol_in+'/'+'premarket'
+            fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol_in.lower()+'/'+'premarket'
             print fullurl
             try:
                 urllib2.socket.setdefaulttimeout(20)
@@ -247,7 +255,7 @@ class Nasdaq_realtimeData(object):
                 return int(1)
         if pagesoup_in is None and stock_symbol_in is not None:
             sectionID = 'symbol'
-            fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol_in+'/'+'time-sales?time=1'
+            fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol_in.lower()+'/'+'time-sales?time=1'
             print fullurl
             try:
                 urllib2.socket.setdefaulttimeout(20)
@@ -262,6 +270,8 @@ class Nasdaq_realtimeData(object):
 if __name__ == '__main__':
     print 'run as main functions'
     a = Nasdaq_realtimeData() 
-    a.GetRealTimeAfterhours(stock_symbol='AAPL')
-    a.GetRealTimeVolumePrice(stock_symbol='AAPL')
-    a.GetRealTimePreMaket('AAPL')
+    #a.GetRealTimeAfterhours_singlepage(stock_symbol='AAPL')
+    a.GetRealTimeAfterhours(stock_symbol='aapl')
+    #a.GetRealTimeAfterhours(stock_symbol='AAPL')
+    #a.GetRealTimeVolumePrice(stock_symbol='AAPL')
+    #a.GetRealTimePreMaket('AAPL')
