@@ -5,12 +5,12 @@ autor : Siyu
 '''
 import mysql.connector
 from mysql.connector import errorcode
-from mysql.utilities.common import database
-from gtk.keysyms import cursor
+#from mysql.utilities.common import database
+#from gtk.keysyms import cursor
 
-from datetime import date
+#from datetime import date
 from datetime import datetime
-from datetime import timedelta
+#from datetime import timedelta
 
 class mysql_interface(object):
     def __init__(self):

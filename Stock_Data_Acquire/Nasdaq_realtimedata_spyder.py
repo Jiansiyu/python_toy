@@ -2,14 +2,8 @@ import urllib2
 from bs4 import BeautifulSoup  # used for decode the html data
 # from boto.dynamodb2.types import NUMBER
 # from datetime import date
-from datetime import datetime
-from scipy.constants.constants import minute
-#from __builtin__ import int
-#from click.types import INT
-#from sympy.physics.units import second
-#from scipy.constants.constants import hour
-# from datetime import timedelta
-
+from datetime import datetime, timedelta
+from DataBase_interface import mysql_interface
 class Nasdaq_realtimeData(object):
     def __init__(self, *args, **kwargs):
         print "nasdaq"
@@ -98,29 +92,78 @@ class Nasdaq_realtimeData(object):
         for keys in summary_result.keys():
             print keys + "   "+summary_result[keys]
         return summary_result
-    
+    def SaveRealTimeVolumePrice(self,stock_symbol):
+        print 'Get ' +stock_symbol
+        RealTimeVolumePrice_result=self.GetRealTimeVolumePrice(stock_symbol=stock_symbol)
+        
     def GetRealTimeVolumePrice(self,stock_symbol):
+        print ''
+        RealTimeVolumePrice_result=[]
+        time_range_code=0
+        if datetime.now().time() < datetime.now().replace(hour=9,minute=30,second=0).time() or datetime.now().time() > datetime.now().replace(hour=16,minute=0,second=0).time():
+            time_range_code=13
+        else:
+            time_range_code=(datetime.now()- datetime.now().replace(hour=9,minute=30,second=0)).seconds/3600+1
+
+        for time_code in range(1,time_range_code):
+            
+            NumofPage=self.__GetNumofPageRealTimeVolumePrice(stock_symbol_in=stock_symbol, time_range_code=time_code)
+            print str(time_code)+' page:'+str(NumofPage)
+            for pageid in range(1,NumofPage+1):
+                page_result=self.GetRealTimeVolumePrice_singletime_singlepage(stock_symbol=stock_symbol, page_id=pageid, time_range_code=time_code)
+                for single_line_result in page_result:
+                    RealTimeVolumePrice_result.append(single_line_result)
+        print stock_symbol.upper()+' :: '+ str(len(RealTimeVolumePrice_result))+' realtime trade record detected'    
+        print reversed(RealTimeVolumePrice_result)  
+        return reversed(RealTimeVolumePrice_result)            
+    def GetRealTimeVolumePrice_singletime_singlepage(self,stock_symbol,page_id=None,time_range_code=None):
+
+        if time_range_code is None:
+            time_id=0
+        if time_range_code >=0 and time_range_code <=13:
+            time_id=time_range_code
+        else:
+            print 'ERROR unrecognized time_range_code ...... set it to 0'
+            time_id=0
+        if page_id is None:
+            page_id=1
         sectionID = 'symbol'
-        fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol.lower()+'/'+'time-sales?time=1'
+        fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol.lower()+'/'+'time-sales?time='+format(str(time_id))+'&pageno='+str(page_id)
         print fullurl
+        page_result=[]
         try:
             urllib2.socket.setdefaulttimeout(20)
             urlrequest = urllib2.Request(fullurl)
             urlresponse = urllib2.urlopen(urlrequest)
             urlpage = urlresponse.read()
             pagesoup = BeautifulSoup(urlpage,"lxml")
-            print self.__GetNumofPageRealTimeVolumePrice(stock_symbol_in='aapl',time_range_code=2)#, time_range_code, pagesoup_in)(pagesoup_in=pagesoup)
+            #print self.__GetNumofPageRealTimeVolumePrice(stock_symbol_in='aapl',time_range_code=2)#, time_range_code, pagesoup_in)(pagesoup_in=pagesoup)
             #print pagesoup
             tablepage= pagesoup.find_all("div", {"class", "genTable"})[0].find("table")#find('table',id="AfterHoursPagingContents_Table")#,{"id","AfterHoursPagingContents_Table"})
             #print tablepage
             #print tablepage.find('thead')
             for trs in tablepage.find_all('tr'):
                 time   = trs.find_all()[0].text
-                price  = trs.find_all()[1].text
+                price  = trs.find_all()[1].text.split()[1]
                 volume = trs.find_all()[2].text
-                print time +' '+price+ ' '+volume
+                try:
+                    trade_time=datetime.now().replace(hour=int(time.split(':')[0]),minute=int(time.split(':')[1]),second=int(time.split(':')[2]))
+                    if trade_time.time() > trade_time.replace(hour=9,minute=30,second=0).time():
+                        trade_time=trade_time-timedelta(days=1)
+                    trade_price=float(price.replace(' ', '').replace(',', ''))
+                    trade_volume=int(volume.replace(' ', '').replace(',', ''))
+                    single_line_final_data=(stock_symbol,trade_time,trade_price,trade_volume,datetime.now())
+                    page_result.append(single_line_final_data)
+                    #print single_line_final_data
+                except:
+                    print 'decode data error in realtime'
+                #print time +' '+price+ ' '+volume
         except:
             print 'error'
+#         for i in reversed(page_result):
+#             print i
+        print stock_symbol+' :: page='+str(page_id)+' :: <'+str(len(page_result))+'> infors are detected'
+        return page_result
     
     def SaveRealTimePreMaket(self,stock_symbol):
         print ''
@@ -135,9 +178,9 @@ class Nasdaq_realtimeData(object):
                 RealTimeAfterhours_result.append(single_line_result) 
         
         print stock_symbol.upper()+' :: '+ str(len(RealTimeAfterhours_result))+' premarket trade record detected'
-        return RealTimeAfterhours_result
+        return reversed(RealTimeAfterhours_result)
     
-    def GetRealTimePreMaket_singlepage(self,stock_symbol,page_id):
+    def GetRealTimePreMaket_singlepage(self,stock_symbol,page_id=None):
         if page_id is None:
             page_id=1
         sectionID = 'symbol'
@@ -153,8 +196,6 @@ class Nasdaq_realtimeData(object):
             #self.__GeNumofPagePreMaket(pagesoup_in=pagesoup)
             tablepage= pagesoup.find_all("div", {"class", "genTable"})[1].find("table")#find('table',id="AfterHoursPagingContents_Table")#,{"id","AfterHoursPagingContents_Table"})
             
-            #print tablepage
-            #print tablepage.find('thead')
             for trs in tablepage.find_all('tr'):
                 tds= trs.find_all()
                 time    = ''
@@ -196,7 +237,7 @@ class Nasdaq_realtimeData(object):
                 #print single_line_result
                 RealTimeAfterhours_result.append(single_line_result) 
         print stock_symbol.upper()+' :: '+ str(len(RealTimeAfterhours_result))+' after hour trade record detected'
-        return RealTimeAfterhours_result    
+        return reversed(RealTimeAfterhours_result)    
             
     def GetRealTimeAfterhours_singlepage(self,stock_symbol,page_id=None):
         if page_id is None:
@@ -371,7 +412,8 @@ if __name__ == '__main__':
     #a.GetRealTimeAfterhours_singlepage(stock_symbol='AAPL')
     #a.GetRealTimeAfterhours(stock_symbol='aapl')
     #a.GetRealTimePreMaket(stock_symbol='AAPL')
-    a.GetRealTimeVolumePrice(stock_symbol='AAPL')
+    a.GetRealTimeVolumePrice('AAPL')
+    #a.GetRealTimeVolumePrice_singletime_singlepage(stock_symbol='aapl', page_id=1, time_range_code=2)
     #print a.__GetNumofPageRealTimeVolumePrice(stock_symbol_in='aapl')
 #    a.GetRealTimePreMaket_singlepage('AAPL',page_id=1)
 #   a.test(stock_symbol='aapl')
