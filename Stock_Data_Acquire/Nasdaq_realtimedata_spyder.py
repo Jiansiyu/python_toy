@@ -376,22 +376,22 @@ class Nasdaq_realtimeData(object):
     def __GetNumofPageAfterhours(self,stock_symbol_in=None,pagesoup_in=None,retry_counter=None):
         if retry_counter is None:
             retry_counter=0
-        print '\nGet Page Number afterhour.... '
+        #print '\nGet Page Number afterhour.... '
         if retry_counter > STOCK_SCAN_IPPROX_MAXRETRYTIMES:
-            print 'ERROR  reach max retry times in GET PAGE NUMBER, RETURN 0'
+            #print 'ERROR  reach max retry times in GET PAGE NUMBER, RETURN 0'
             return int(0)
         if stock_symbol_in is None and pagesoup_in is None:
             print 'Function Error'
             exit(-1)
 
         if pagesoup_in is not None:
-            print 'decode page soup'
-            print 'lala'
+            #print 'decode page soup'
+            #print 'lala'
             
             try:
                 tablepage= pagesoup_in.find_all("div")#find('table',id="AfterHoursPagingContents_Table")#,{"id","AfterHoursPagingContents_Table"})
             except:
-                print 'page soup maybe empty'
+                #print 'page soup maybe empty'
                 self.__GetNumofPageAfterhours(stock_symbol_in=stock_symbol_in,retry_counter=retry_counter+1)
                 
             tablepage= pagesoup_in.find_all("div", {"id": "pagerContainer"})[0].find_all('li')    
@@ -399,12 +399,12 @@ class Nasdaq_realtimeData(object):
             if  numberofpage> 0:
                 
                 pagenumber = int(tablepage[-3].get_text())
-                print 'where i am************ '
-                print pagenumber
+                #print 'where i am************ '
+                #print pagenumber
                 return pagenumber
-                print pagenumber
+                #print pagenumber
             else:
-                print 'where i am 1   '+ str(numberofpage)
+                #print 'where i am 1   '+ str(numberofpage)
                 return int(1)
         #print 'where i am 222333'
         if pagesoup_in is None and stock_symbol_in is not None:
@@ -442,18 +442,37 @@ class Nasdaq_realtimeData(object):
             except:
                 print 'Unknown error get page number afterhour with return 1......'
                 return self.__GetNumofPageAfterhours(stock_symbol_in=stock_symbol_in,retry_counter=retry_counter+1)    
-    def __GeNumofPagePreMaket(self,stock_symbol_in=None,pagesoup_in=None):
+            
+    def __GeNumofPagePreMaket(self,stock_symbol_in=None,pagesoup_in=None,retry_counter=None):
+        
+        '''
+        '''
+        # control the max retry times
+        if retry_counter is None:
+            retry_counter=0
+        if retry_counter > STOCK_SCAN_IPPROX_MAXRETRYTIMES:
+            print 'ERROR  reach max retry times in GET PAGE NUMBER, RETURN 0'
+            return int(0)   
+        
         if stock_symbol_in is None and pagesoup_in is None:
             print 'Function Error'
             exit(-1)
+        
         if pagesoup_in is not None:
+            try:
+                tablepage=pagesoup_in.find_all("div")
+            except:
+                self.__GeNumofPagePreMaket(stock_symbol_in=stock_symbol_in, retry_counter=retry_counter+1)
+                
             tablepage= pagesoup_in.find_all("div", {"id": "pagerContainer"})[0].find_all('li')#find('table',id="AfterHoursPagingContents_Table")#,{"id","AfterHoursPagingContents_Table"})
             numberofpage=len(tablepage)-4
             if  numberofpage> 0:
                 return int(tablepage[-3].get_text())
             else:
                 return int(1)
+            
         if pagesoup_in is None and stock_symbol_in is not None:
+            
             sectionID = 'symbol'
             fullurl = self.Nasdaqmainurl + sectionID + '/' + stock_symbol_in.lower()+'/'+'premarket'
             print fullurl
@@ -466,10 +485,10 @@ class Nasdaq_realtimeData(object):
                 urlresponse = urllib2.urlopen(urlrequest)
                 urlpage = urlresponse.read()
                 pagesoup = BeautifulSoup(urlpage,"lxml")
-                return int(self.__GeNumofPagePreMaket(pagesoup_in=pagesoup))
+                return int(self.__GeNumofPagePreMaket(pagesoup_in=pagesoup, retry_counter=retry_counter+1))
             except:
-                print 'error get page number'
-                return int(1)
+                #print 'error get page number'
+                return int(self.__GeNumofPagePreMaket(pagesoup_in=pagesoup, retry_counter=retry_counter+1))
     def __GetNumofPageRealTimeVolumePrice(self,stock_symbol_in=None,time_range_code=None,pagesoup_in=None):
         if stock_symbol_in is None and pagesoup_in is None:
             print 'Function Error'
