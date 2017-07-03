@@ -10,6 +10,7 @@ from mysql.connector import errorcode
 
 #from datetime import date
 from datetime import datetime
+from numpy import single
 #from datetime import timedelta
 
 class mysql_interface(object):
@@ -171,7 +172,7 @@ class mysql_interface(object):
         cursor.close()
         cnx.close()
         
-    def Save(self,databasename_in,save_data_in,user=None,passcode=None):
+    def Save(self,databasename_in,save_data_in,table_name,user=None,passcode=None):
         DB_user=''
         if user is None:
             DB_user='test'
@@ -185,26 +186,35 @@ class mysql_interface(object):
         
         DB_name = databasename_in
         
-        # connect to the database
-        cursor=''
+        '''
+        try to connect to the mysql database
+        if can not connect to the database, and it is causeb by the databse error, try to create one
+        '''
+        
         try:
             cnx=mysql.connector.connect(user=DB_user,password=DB_passcode,database=DB_name)
             cursor=cnx.cursor()
+            
             print '    <'+format(DB_name)+'> connected'
+            if table_name in self.add_table.keys():
+                for singleline_data in save_data_in:
+                    cursor.execute(self.add_table[table_name],singleline_data)
+            else:
+                print '[DATABASE ERROR] cannot find the table_name, please varify the tablename input'
+                for i in self.add_table.keys():
+                    print '    *'+i         
+            
+            cnx.commit()
+            cursor.close()
+            cnx.close()
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_BAD_DB_ERROR:
                 print 'error in connect database '+format(DB_name)+', TRY TO Recreate it'
                 self.create_database(DB_name, DB_user, DB_passcode)
-                self.Save(databasename_in, save_data_in, user, passcode)
+                self.Save(databasename_in, save_data_in,table_name, user, passcode)
             else:
                 print 'Can NOT connect to database <'+format(DB_name)+'>'
                 exit(-1)
-                
-        data=('A',datetime.now(),float(100.01),int(200000),datetime.now())
-        cursor.execute(self.add_table['afterhoursquote'],data)
-        cnx.commit()
-        cursor.close()
-        cnx.close()
         
     def GetStockData(self,stock_symbol):
         print 'extract the data from server'
@@ -225,7 +235,9 @@ if __name__ == '__main__':
     print 'this is only used for test....'
     a=mysql_interface()
     a.create_database()
-    data=('A',datetime.now(),100.01,200000,datetime.now())
-    a.Save('testdb', data, 'test', '123456')
+    lala=[]
+    data=('A',datetime.now(),float(100.01),int(200000),datetime.now())
+    lala.append(data)
+    a.Save('testdb1', lala, 'afterhoursquote','test','123456')
     #a.CloseDB()
     
